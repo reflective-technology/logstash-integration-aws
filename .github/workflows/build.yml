@@ -2,9 +2,9 @@ name: Build and Test Gem
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, sqs-attributes ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main, sqs-attributes ]
   workflow_dispatch:
 
 jobs:
