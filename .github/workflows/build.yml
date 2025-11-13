@@ -8,11 +8,14 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-test:
+  build:
     runs-on: ubuntu-latest
     
-    env:
-      LOGSTASH_VERSION: 9.2.0
+    strategy:
+      matrix:
+        jruby-version: ['9.3', '9.4']
+        java-version: ['11', '17']
+      fail-fast: false
     
     steps:
     - name: Checkout code
@@ -22,27 +25,21 @@ jobs:
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
-        java-version: '11'
+        java-version: ${{ matrix.java-version }}
     
     - name: Set up JRuby
       uses: ruby/setup-ruby@v1
       with:
-        ruby-version: jruby-9.3.10
+        ruby-version: jruby-${{ matrix.jruby-version }}
         bundler-cache: true
-    
-    - name: Download and setup Logstash
-      run: |
-        curl -L https://artifacts.elastic.co/downloads/logstash/logstash-${LOGSTASH_VERSION}-linux-x86_64.tar.gz | tar -zxf -
-        echo "LOGSTASH_PATH=$PWD/logstash-${LOGSTASH_VERSION}" >> $GITHUB_ENV
-        echo "LOGSTASH_SOURCE=1" >> $GITHUB_ENV
     
     - name: Install dependencies
       run: |
         bundle install
-        bundle exec rake vendor
+        ./gradlew clean vendor
     
     - name: Run tests
-      run: bundle exec rspec
+      run: bundle exec rake test
     
     - name: Build gem
       run: gem build logstash-integration-aws.gemspec
@@ -50,7 +47,7 @@ jobs:
     - name: Upload gem artifact
       uses: actions/upload-artifact@v4
       with:
-        name: logstash-integration-aws-gem
+        name: logstash-integration-aws-jruby${{ matrix.jruby-version }}-java${{ matrix.java-version }}
         path: '*.gem'
         retention-days: 30
     
