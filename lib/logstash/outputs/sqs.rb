@@ -199,9 +199,9 @@ class LogStash::Outputs::SQS < LogStash::Outputs::Base
       @logger.debug("Publishing #{entries.size} messages to SQS, multiplexed into a single SQS message", :queue_url => @queue_url, :message_body => multiplexed_msg_body)
       if @message_group_id
         @sqs.send_message(:queue_url => @queue_url, :message_body => multiplexed_msg_body, :message_group_id => @message_group_id)
-        next
+      else
+        @sqs.send_message(:queue_url => @queue_url, :message_body => multiplexed_msg_body)
       end
-      @sqs.send_message(:queue_url => @queue_url, :message_body => multiplexed_msg_body)
     end
   end
 end
