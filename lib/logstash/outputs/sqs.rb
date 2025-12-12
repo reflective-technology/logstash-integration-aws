@@ -87,9 +87,21 @@ class LogStash::Outputs::SQS < LogStash::Outputs::Base
   # Message Group ID for messages sent to queues.
   config :message_group_id, :validate => :string, :required => false
 
+  # Batch messages via multiplexing
+  config :multiplex, :validate => :boolean, :default => false
+
   public
   def register
     @sqs = Aws::SQS::Client.new(aws_options_hash)
+
+    if @multiplex && @codec.config_name != "json"
+      @logger.warn('Multiplex batching is only supported for the json codec; falling back to SQS batching.')
+      @multiplex = false
+    end
+
+    if @multiplex
+      @logger.warn("Multiplex batching is enabled. Reading from this queue with input codecs other than 'json' may have unexpected results.")
+    end
 
     if @batch_events > 10
       raise LogStash::ConfigurationError, 'The maximum batch size is 10 events'
@@ -134,7 +146,10 @@ class LogStash::Outputs::SQS < LogStash::Outputs::Base
         next
       end
 
-      if entries.size >= @batch_events or (bytes + encoded.bytesize) > @message_max_size
+      # Size computation: in the multiplexing case, we create a JSON array,
+      # so we need two extra bytes for the enclosing "[]" and one extra byte
+      # per message for the separator ",".
+      if entries.size >= @batch_events or (bytes + encoded.bytesize + 2 + entries.size) > @message_max_size
         send_message_batch(entries)
 
         bytes = 0
@@ -167,12 +182,26 @@ class LogStash::Outputs::SQS < LogStash::Outputs::Base
 
   private
   def send_message_batch(entries)
-    @logger.debug("Publishing #{entries.size} messages to SQS", :queue_url => @queue_url, :entries => entries)
-    if @message_group_id
-      entries.each do |entry|
-        entry[:message_group_id] = @message_group_id
+    if !@multiplex || entries.size < 2
+      @logger.debug("Publishing #{entries.size} messages to SQS", :queue_url => @queue_url, :entries => entries)
+      if @message_group_id
+        entries.each do |entry|
+          entry[:message_group_id] = @message_group_id
+        end
       end
+      @sqs.send_message_batch(:queue_url => @queue_url, :entries => entries)
+    else
+      msgs = []
+      entries.each do |msg|
+        msgs.push(msg[:message_body])
+      end
+      multiplexed_msg_body = "[" + msgs.join(",") + "]"
+      @logger.debug("Publishing #{entries.size} messages to SQS, multiplexed into a single SQS message", :queue_url => @queue_url, :message_body => multiplexed_msg_body)
+      if @message_group_id
+        @sqs.send_message(:queue_url => @queue_url, :message_body => multiplexed_msg_body, :message_group_id => @message_group_id)
+        next
+      end
+      @sqs.send_message(:queue_url => @queue_url, :message_body => multiplexed_msg_body)
     end
-    @sqs.send_message_batch(:queue_url => @queue_url, :entries => entries)
   end
 end
