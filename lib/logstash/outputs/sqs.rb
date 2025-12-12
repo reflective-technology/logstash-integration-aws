@@ -103,7 +103,7 @@ class LogStash::Outputs::SQS < LogStash::Outputs::Base
       @logger.warn("Multiplex batching is enabled. Reading from this queue with input codecs other than 'json' may have unexpected results.")
     end
 
-    if @batch_events > 10
+    if !@multiplex && @batch_events > 10
       raise LogStash::ConfigurationError, 'The maximum batch size is 10 events'
     elsif @batch_events < 1
       raise LogStash::ConfigurationError, 'The batch size must be greater than 0'
