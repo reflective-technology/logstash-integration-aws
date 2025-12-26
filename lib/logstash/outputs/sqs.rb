@@ -160,7 +160,7 @@ class LogStash::Outputs::SQS < LogStash::Outputs::Base
 
       bytes += encoded.bytesize
       if @message_group_id
-        entries.push(:id => index.to_s, :message_body => encoded, :message_group_id => @event_group_id.call(event))
+        entries.push(:id => index.to_s, :message_body => encoded, :message_group_id => event.sprintf(@message_group_id))
       else
         entries.push(:id => index.to_s, :message_body => encoded)
       end
@@ -179,7 +179,7 @@ class LogStash::Outputs::SQS < LogStash::Outputs::Base
         next
       end
       if @message_group_id
-        @sqs.send_message(:queue_url => @queue_url, :message_body => encoded, :message_group_id => @event_group_id.call(event))
+        @sqs.send_message(:queue_url => @queue_url, :message_body => encoded, :message_group_id => event.sprintf(@message_group_id))
         next
       end
       @sqs.send_message(:queue_url => @queue_url, :message_body => encoded)
