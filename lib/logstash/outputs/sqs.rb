@@ -107,6 +107,8 @@ class LogStash::Outputs::SQS < LogStash::Outputs::Base
       raise LogStash::ConfigurationError, 'The maximum batch size is 10 events'
     elsif @batch_events < 1
       raise LogStash::ConfigurationError, 'The batch size must be greater than 0'
+
+    @event_group_id = -> (e) { e.sprintf(@message_group_id) }
    end
 
     begin
@@ -173,7 +175,7 @@ class LogStash::Outputs::SQS < LogStash::Outputs::Base
         next
       end
       if @message_group_id
-        @sqs.send_message(:queue_url => @queue_url, :message_body => encoded, :message_group_id => @message_group_id)
+        @sqs.send_message(:queue_url => @queue_url, :message_body => encoded, :message_group_id => @event_group_id.call(event))
         next
       end
       @sqs.send_message(:queue_url => @queue_url, :message_body => encoded)
@@ -186,7 +188,7 @@ class LogStash::Outputs::SQS < LogStash::Outputs::Base
       @logger.debug("Publishing #{entries.size} messages to SQS", :queue_url => @queue_url, :entries => entries)
       if @message_group_id
         entries.each do |entry|
-          entry[:message_group_id] = @message_group_id
+          entry[:message_group_id] = @event_group_id.call(entry)
         end
       end
       @sqs.send_message_batch(:queue_url => @queue_url, :entries => entries)
@@ -198,7 +200,7 @@ class LogStash::Outputs::SQS < LogStash::Outputs::Base
       multiplexed_msg_body = "[" + msgs.join(",") + "]"
       @logger.debug("Publishing #{entries.size} messages to SQS, multiplexed into a single SQS message", :queue_url => @queue_url, :message_body => multiplexed_msg_body)
       if @message_group_id
-        @sqs.send_message(:queue_url => @queue_url, :message_body => multiplexed_msg_body, :message_group_id => @message_group_id)
+        @sqs.send_message(:queue_url => @queue_url, :message_body => multiplexed_msg_body, :message_group_id => @event_group_id.call(event))
       else
         @sqs.send_message(:queue_url => @queue_url, :message_body => multiplexed_msg_body)
       end
