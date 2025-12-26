@@ -184,6 +184,7 @@ class LogStash::Outputs::SQS < LogStash::Outputs::Base
 
   private
   def send_message_batch(entries)
+    all_message_group_ids = entries.map { |e| @event_group_id.call(e) }.uniq
     if !@multiplex || entries.size < 2
       @logger.debug("Publishing #{entries.size} messages to SQS", :queue_url => @queue_url, :entries => entries)
       if @message_group_id
@@ -192,8 +193,7 @@ class LogStash::Outputs::SQS < LogStash::Outputs::Base
         end
       end
       @sqs.send_message_batch(:queue_url => @queue_url, :entries => entries)
-    all_message_group_ids = entries.map { |e| @event_group_id.call(e) }.uniq
-    if @message_group_id && all_message_group_ids.size > 1
+    elsif @message_group_id && all_message_group_ids.size > 1
       @logger.warn("All messages in a batch must have the same Message Group ID when sending to an SQS FIFO queue. Falling back to sending messages individually.")
       entries.each do |entry|
         @sqs.send_message(:queue_url => @queue_url, :message_body => entry[:message_body], :message_group_id => @event_group_id.call(entry))
