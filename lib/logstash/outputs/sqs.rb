@@ -107,9 +107,7 @@ class LogStash::Outputs::SQS < LogStash::Outputs::Base
       raise LogStash::ConfigurationError, 'The maximum batch size is 10 events'
     elsif @batch_events < 1
       raise LogStash::ConfigurationError, 'The batch size must be greater than 0'
-
-    @event_group_id = -> (e) { e.sprintf(@message_group_id) }
-   end
+    end
 
     begin
       params = { queue_name: @queue }
