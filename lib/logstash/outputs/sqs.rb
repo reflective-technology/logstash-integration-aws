@@ -159,7 +159,11 @@ class LogStash::Outputs::SQS < LogStash::Outputs::Base
       end
 
       bytes += encoded.bytesize
-      entries.push(:id => index.to_s, :message_body => encoded)
+      if @message_group_id
+        entries.push(:id => index.to_s, :message_body => encoded, :message_group_id => @event_group_id.call(event))
+      else
+        entries.push(:id => index.to_s, :message_body => encoded)
+      end
     end
 
     send_message_batch(entries) unless entries.empty?
@@ -184,19 +188,14 @@ class LogStash::Outputs::SQS < LogStash::Outputs::Base
 
   private
   def send_message_batch(entries)
-    all_message_group_ids = entries.map { |e| @event_group_id.call(e) }.uniq
+    all_message_group_ids = entries.map { |e| e[:message_group_id] }.compact.uniq
     if !@multiplex || entries.size < 2
       @logger.debug("Publishing #{entries.size} messages to SQS", :queue_url => @queue_url, :entries => entries)
-      if @message_group_id
-        entries.each do |entry|
-          entry[:message_group_id] = @event_group_id.call(entry)
-        end
-      end
       @sqs.send_message_batch(:queue_url => @queue_url, :entries => entries)
     elsif @message_group_id && all_message_group_ids.size > 1
       @logger.warn("All messages in a batch must have the same Message Group ID when sending to an SQS FIFO queue. Falling back to sending messages individually.")
       entries.each do |entry|
-        @sqs.send_message(:queue_url => @queue_url, :message_body => entry[:message_body], :message_group_id => @event_group_id.call(entry))
+        @sqs.send_message(:queue_url => @queue_url, :message_body => entry[:message_body], :message_group_id => entry[:message_group_id])
       end
     else
       msgs = []
@@ -206,7 +205,7 @@ class LogStash::Outputs::SQS < LogStash::Outputs::Base
       multiplexed_msg_body = "[" + msgs.join(",") + "]"
       @logger.debug("Publishing #{entries.size} messages to SQS, multiplexed into a single SQS message", :queue_url => @queue_url, :message_body => multiplexed_msg_body)
       if @message_group_id
-        @sqs.send_message(:queue_url => @queue_url, :message_body => multiplexed_msg_body, :message_group_id => @event_group_id.call(entries.first))
+        @sqs.send_message(:queue_url => @queue_url, :message_body => multiplexed_msg_body, :message_group_id => all_message_group_ids.first)
       else
         @sqs.send_message(:queue_url => @queue_url, :message_body => multiplexed_msg_body)
       end
