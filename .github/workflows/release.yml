@@ -3,8 +3,8 @@ name: Create Release
 on:
   push:
     tags:
-      - 'v*'  # Triggers on version tags like v7.2.2, v7.2.3, etc.
-  workflow_dispatch:  # Allows manual trigger from GitHub UI
+      - "v*" # Triggers on version tags like v7.2.2, v7.2.3, etc.
+  workflow_dispatch: # Allows manual trigger from GitHub UI
 
 permissions:
   contents: write
@@ -12,56 +12,58 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Java
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '11'
-    
-    - name: Set up JRuby
-      uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: jruby-9.3
-        bundler-cache: true
-    
-    - name: Install dependencies
-      run: |
-        bundle install
-        ./gradlew clean vendor
-    
-    - name: Build gem
-      run: gem build logstash-integration-aws.gemspec
-    
-    - name: List built gems
-      run: ls -lh *.gem
-    
-    - name: Get version from VERSION file
-      id: get_version
-      run: echo "VERSION=$(cat VERSION | tr -d '\n')" >> $GITHUB_OUTPUT
-    
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        name: Release ${{ steps.get_version.outputs.VERSION }}
-        body: |
-          Release of logstash-integration-aws version ${{ steps.get_version.outputs.VERSION }}
-          
-          ## Installation
-          ```bash
-          gem install logstash-integration-aws-${{ steps.get_version.outputs.VERSION }}-java.gem
-          ```
-          
-          Or with Logstash:
-          ```bash
-          bin/logstash-plugin install logstash-integration-aws-${{ steps.get_version.outputs.VERSION }}-java.gem
-          ```
-        files: |
-          *.gem
-        draft: false
-        prerelease: false
 
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Fake VERSION file for release from tag
+        run: echo "${GITHUB_REF_NAME}" > VERSION
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Set up JRuby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: jruby-9.4
+          bundler-cache: true
+
+      - name: Install dependencies
+        run: |
+          bundle install
+          ./gradlew clean vendor
+
+      - name: Build gem
+        run: gem build logstash-integration-aws.gemspec
+
+      - name: List built gems
+        run: ls -lh *.gem
+
+      - name: Get version from VERSION file
+        id: get_version
+        run: echo "VERSION=$(cat VERSION | tr -d '\n')" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ steps.get_version.outputs.VERSION }}
+          body: |
+            Release of logstash-integration-aws version ${{ steps.get_version.outputs.VERSION }}
+
+            ## Installation
+            ```bash
+            gem install logstash-integration-aws-${{ steps.get_version.outputs.VERSION }}-java.gem
+            ```
+
+            Or with Logstash:
+            ```bash
+            bin/logstash-plugin install logstash-integration-aws-${{ steps.get_version.outputs.VERSION }}-java.gem
+            ```
+          files: |
+            *.gem
+          draft: false
+          prerelease: false
