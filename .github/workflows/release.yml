@@ -19,8 +19,7 @@ jobs:
 
       - name: Fake VERSION file for release from tag
         run: |
-          echo "${GITHUB_REF_NAME}" > VERSION
-          cat VERSION
+          echo "${GITHUB_REF#refs/tags/v}" > VERSION
 
       - name: Set up Java
         uses: actions/setup-java@v4
