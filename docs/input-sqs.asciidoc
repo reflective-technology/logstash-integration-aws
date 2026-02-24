@@ -104,6 +104,7 @@ This plugin supports the following configuration options plus the <<plugins-{typ
 | <<plugins-{type}s-{plugin}-threads>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-use_aws_bundled_ca>> |<<boolean,boolean>>|No
 | <<plugins-{type}s-{plugin}-web_identity_token_file>> |<<string,string>>|No
+| <<plugins-{type}s-{plugin}-user_attributes_field>> |<<string,string>>|No
 |=======================================================================
 
 Also see <<plugins-{type}s-{plugin}-common-options>> for a list of options supported by all
@@ -279,6 +280,13 @@ The AWS Session token for temporary credential
   * Value type is <<number,number>>
   * Default value is `1`
 
+[id="plugins-{type}s-{plugin}-user_attributes_field"]
+===== `user_attributes_field`
+
+  * Value type is <<string,string>>
+  * Default value is `"user_attributes"`
+
+Name of the event field in which to store the SQS message User Attributes
 
 [id="plugins-{type}s-{plugin}-use_aws_bundled_ca"]
 ===== `use_aws_bundled_ca`
