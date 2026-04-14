@@ -28,7 +28,7 @@ jobs:
           java-version: "21"
 
       - name: Set up JRuby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@4c56a21280b36d862b5fc31348f463d60bdc55d5 # v1.301.0
         with:
           ruby-version: jruby-9.4
           bundler-cache: true
@@ -49,7 +49,7 @@ jobs:
         run: echo "VERSION=$(cat VERSION | tr -d '\n')" >> $GITHUB_OUTPUT
 
       - name: Create Release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
           name: Release ${{ steps.get_version.outputs.VERSION }}
           body: |
