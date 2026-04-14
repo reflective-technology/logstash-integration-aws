@@ -7,6 +7,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -28,7 +31,7 @@ jobs:
           java-version: ${{ matrix.java-version }}
 
       - name: Set up JRuby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@4c56a21280b36d862b5fc31348f463d60bdc55d5 # v1.301.0
         with:
           ruby-version: jruby-${{ matrix.jruby-version }}
           bundler-cache: true
@@ -37,9 +40,6 @@ jobs:
         run: |
           bundle install
           ./gradlew clean vendor
-
-      # - name: Run tests
-      #   run: bundle exec rake test
 
       - name: Build gem
         run: gem build logstash-integration-aws.gemspec
