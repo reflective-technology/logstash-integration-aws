@@ -16,7 +16,7 @@ jobs:
 
     strategy:
       matrix:
-        jruby-version: ["9.4", "10.0", "10.1"]
+        jruby-version: ["9.4", "10.0"]
         java-version: ["21"]
       fail-fast: false
 
